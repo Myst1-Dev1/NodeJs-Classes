@@ -1,6 +1,8 @@
 const user = require("../db/models/user");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const catchAsync = require('../utils/catchAsync.js');
+const AppError = require('../utils/appError.js');
 
 const generateToken = (payload) => {
     return jwt.sign(payload, process.env.JWT_SECRET_KEY, {
@@ -8,14 +10,11 @@ const generateToken = (payload) => {
     });
 }
 
-const signUp = async(req, res, next) => {
+const signUp = catchAsync(async(req, res, next) => {
     const body = req.body;
 
     if(!['1', '2'].includes(body.userType)) {
-        return res.status(400).json({
-            status:'fail',
-            message:'Invalid user type'
-        });
+        throw new AppError('Invalid user type', 400);
     }
 
     const newUser = await user.create({
@@ -27,6 +26,10 @@ const signUp = async(req, res, next) => {
         confirmPassword: body.confirmPassword
     });
 
+     if(!newUser) {
+        return next(new AppError('Failed to create the user'), 400);
+    }
+
     const result = newUser.toJSON();
 
     delete result.password;
@@ -36,34 +39,23 @@ const signUp = async(req, res, next) => {
         id: result.id
     });
 
-    if(!result) {
-        return res.status(400).json({
-            status:'fail',
-            message:'Failed to create the user'
-        });
-    }
-
     return res.status(201).json({
         status: 'success',
         message:'A new user has been created successfully',
         data:result
     })
-};
+});
 
-const login = async(req, res, next) => {
+const login = catchAsync(async(req, res, next) => {
     const { email, password } = req.body;
 
-    if(!email || !password) return res.status(400).json({
-        status:'fail', 
-        message:'Please provide email and password'
-    });
+    if(!email || !password) return next(new AppError('Please provide email and password', 400));
 
     const result = await user.findOne({where: { email }});
 
-    if(!result || !(await bcrypt.compare(password, result.password))) return res.status(401).json({
-        status:'fail',
-        message:'Incorrect email or password'
-    });
+    if(!result || !(await bcrypt.compare(password, result.password))) {
+        return next(new AppError('Incorrect email or password', 401));
+    }
 
     const token = generateToken({
         id: result.id
@@ -74,9 +66,40 @@ const login = async(req, res, next) => {
         message:'Login successfully',
         data: token
     })
+});
+
+const authentication = catchAsync(async(req,res, next) => {
+    let idToken = '';
+    if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        idToken = req.headers.authorization.split(' ')[1];
+    }
+
+    if(!idToken) {
+        return next(new AppError('Please login to get the access', 401));
+    }
+
+    const tokenDetail = jwt.verify(idToken, process.env.JWT_SECRET_KEY);
+
+    const freshUser = await user.findByPk(tokenDetail.id);
+
+    if(!freshUser) {
+        return next(new AppError('User no longer exists'), 400);
+    }
+
+    req.user = freshUser;
+    return next();
+});
+
+const restrictTo = (...userType) => {
+    const checkPermission = (req, res, next) => {
+        if(!userType.includes(req.user.userType)) {
+            return next(new AppError('You dont have permission to perform this action', 403));
+        }
+
+        return next();
+    }
+
+    return checkPermission;
 }
 
-module.exports = {
-    signUp,
-    login
-}
+module.exports = { signUp, login, authentication, restrictTo }

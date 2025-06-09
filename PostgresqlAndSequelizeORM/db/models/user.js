@@ -1,14 +1,14 @@
 'use strict';
 const {
-  Model,
-  Sequelize,
   DataTypes
 } = require('sequelize');
 const bcrypt = require('bcrypt');
 
 const sequelize = require('../../config/database');
+const AppError = require('../../utils/appError.js');
+const project = require('./project.js');
 
-module.exports = sequelize.define('User',  {
+const user = sequelize.define('User',  {
     id: {
       allowNull: false,
       autoIncrement: true,
@@ -16,28 +16,79 @@ module.exports = sequelize.define('User',  {
       type: DataTypes.INTEGER
     },
     userType: {
-      type: DataTypes.ENUM('0', '1', '2')
+      type: DataTypes.ENUM('0', '1', '2'),
+      allowNull: false,
+      validate: {
+        notNull: {
+          msg: 'userType cannot be null'
+        },
+        notEmpty: {
+          msg: 'userType cannot be empty'
+        }
+      }
     },
     firstName: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notNull: {
+          msg: 'firstName cannot be null'
+        },
+        notEmpty: {
+          msg: 'firstName cannot be empty'
+        }
+      }
     },
     lastName: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notNull: {
+          msg: 'lastName cannot be null'
+        },
+        notEmpty: {
+          msg: 'lastName cannot be empty'
+        }
+      }
     },
     email: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notNull: {
+          msg: 'email cannot be null'
+        },
+        notEmpty: {
+          msg: 'email cannot be empty'
+        },
+        isEmail: {
+          msg: 'Invalid email id'
+        }
+      }
     },
     password: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
+      allowNull :false,
+      validate: {
+        notNull: {
+          msg: 'password cannot be null'
+        },
+        notEmpty: {
+          msg: 'password cannot be empty'
+        }
+      }
     },
     confirmPassword: {
       type: DataTypes.VIRTUAL,
       set(value) {
+        if(this.password.length < 7) {
+          throw new AppError('Password length must be grate than 7', 400);
+        }
         if(value === this.password) {
           const hashPassword = bcrypt.hashSync(value, 10);
           this.setDataValue('password', hashPassword);
         } else {
-          throw new Error('Password and confirm password must be the same');
+          throw new AppError('Password and confirm password must be the same', 400);
         }
       }
     },
@@ -57,3 +108,8 @@ module.exports = sequelize.define('User',  {
     freezeTableName: true,
     modelName: 'User'
 });
+
+user.hasMany(project, { foreignKey: 'createdBy' });
+project.belongsTo(user, { foreignKey: 'createdBy' });
+
+module.exports = user;
