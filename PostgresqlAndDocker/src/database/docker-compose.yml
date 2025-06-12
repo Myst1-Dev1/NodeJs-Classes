@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_DB: express-crud
     ports:
       - "5432:5432"
     volumes:
@@ -23,6 +23,22 @@ services:
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
       - "5050:80"
+    volumes:
+    - pgadmin_data:/var/lib/pgadmin 
+    depends_on:
+      - postgres
+    networks:
+      - backend
+
+  api:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: express-api
+    ports:
+      - "3001:3001"
+    env_file:
+      - ../../.env
     depends_on:
       - postgres
     networks:
@@ -30,6 +46,7 @@ services:
 
 volumes:
   pgdata:
+  pgadmin_data:
 
 networks:
   backend:
