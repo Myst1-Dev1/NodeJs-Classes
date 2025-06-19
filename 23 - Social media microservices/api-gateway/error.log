@@ -1,0 +1,4 @@
+{"level":"error","message":"Proxy error: res is not defined","service":"api-gateway","timestamp":"2025-06-19T19:09:12.340Z"}
+{"level":"error","message":"Proxy error: ","service":"api-gateway","timestamp":"2025-06-19T19:11:57.524Z"}
+{"level":"error","message":"Proxy error: ","service":"api-gateway","timestamp":"2025-06-19T19:12:28.003Z"}
+{"code":"ECONNREFUSED","level":"error","message":"Proxy error:","service":"api-gateway","stack":"AggregateError [ECONNREFUSED]: \n    at internalConnectMultiple (node:net:1139:18)\n    at afterConnectMultiple (node:net:1712:7)","timestamp":"2025-06-19T19:13:41.277Z"}
