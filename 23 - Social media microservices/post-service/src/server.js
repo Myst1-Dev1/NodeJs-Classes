@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const postRoutes = require('./routes/post-routes.js');
 const errorHandler = require('./middlewares/errorHandler.js');
 const logger = require('./utils/logger.js');
+const { connectRabbitMq } = require('./utils/rabbitmq.js');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -39,9 +40,19 @@ app.use('/api/posts', (req, res, next) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-    logger.info(`Identity server running on port ${PORT}`);
-});
+async function startServer() {
+    try {
+        await connectRabbitMq();
+        app.listen(PORT, () => {
+            logger.info(`Post server running on port ${PORT}`);
+        });
+    } catch (error) {
+        logger.error('Failed to connect to server', error);
+        process.exit(1);
+    }
+}
+
+startServer();
 
 //unhandled promise rejection
 process.on('unhandledRejection', (reason, promise) => {
