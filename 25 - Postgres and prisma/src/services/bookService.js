@@ -2,7 +2,7 @@
 
 const { PrismaClient } = require('@prisma/client');
 
-const prisma = PrismaClient();
+const prisma = new PrismaClient();
 
 async function addBook(title, publisedDate, authorId) {
     try {
@@ -24,7 +24,7 @@ async function addBook(title, publisedDate, authorId) {
 
 async function getAllBooks() {
     try {
-        const books = await prisma.books.findMany({
+        const books = await prisma.book.findMany({
             include: { author: true }
         });
 
